@@ -1,0 +1,22 @@
+{
+  "name": "fileuploader",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mohammedmarjan/fileUploader.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mohammedmarjan/fileUploader/issues"
+  },
+  "homepage": "https://github.com/mohammedmarjan/fileUploader#readme",
+  "dependencies": {
+    "parse-multipart": "^1.0.4"
+  }
+}
