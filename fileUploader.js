@@ -1,13 +1,19 @@
 const AWS = require("aws-sdk");
 const parseMultipart = require("parse-multipart");
-
+const path = require("path");
 const BUCKET = process.env.BUCKET;
 
 const s3 = new AWS.S3();
 
-module.exports.uploadFile = async (event, context) => {
+module.exports.uploadFile = async (event) => {
   try {
     const { filename, data } = extractFile(event);
+    if (path.extname(filename) != ".txt") {
+      return {
+        statusCode: 403,
+        body: JSON.stringify({ message: "Only .txt files are allowed" }),
+      };
+    }
     await s3
       .putObject({
         Bucket: BUCKET,
