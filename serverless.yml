@@ -1,0 +1,162 @@
+service: ateamFileUploader
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  stage: prod
+  memorySize: 512
+  timeout: 10
+  apiGateway:
+    binaryMediaTypes:
+      - "*/*"
+
+functions:
+  fileUploader:
+    handler: fileUploader.uploadFile
+    events:
+      - http:
+          path: file/upload
+          method: post
+          cors: true
+    role: UploadRole
+    environment:
+      BUCKET: filebucket${opt:stage, 'dev'}
+  wordCounter:
+    handler: wordCounter.count
+    events:
+      - s3:
+          bucket: filebucket${opt:stage, 'dev'}
+          existing: true
+    role: CounterRole
+    environment:
+      OUTPUT_BUCKET: filecountbucket${opt:stage, 'dev'}
+  getWordCount:
+    handler: getCount.getWordCount
+    events:
+      - http:
+          path: file/getWordCount/{fileName}
+          method: get
+          cors: true
+    role: GetWordCountRole
+    environment:
+      INPUT_BUCKET: filecountbucket${opt:stage, 'dev'}
+
+resources:
+  Resources:
+    FileBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: filebucket${opt:stage, 'dev'}
+    FileCountBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: filecountbucket${opt:stage, 'dev'}
+    UploadRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+              Action: sts:AssumeRole
+        Policies:
+          - PolicyName: upload-policy
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - s3:PutObject
+                    - s3:PutObjectAcl
+                  Resource: !Sub
+                    - "arn:aws:s3:::${BucketName}/*"
+                    - { BucketName: !Ref FileBucket }
+                - Effect: Allow
+                  Action:
+                    - logs:CreateLogGroup
+                    - logs:CreateLogStream
+                    - logs:PutLogEvents
+                  Resource:
+                    Fn::Sub:
+                      - arn:aws:logs:${Region}:${AccountId}:log-group:/aws/lambda/*:*:*
+                      - {
+                          Region: !Ref AWS::Region,
+                          AccountId: !Ref AWS::AccountId,
+                        }
+    CounterRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+              Action: sts:AssumeRole
+        Policies:
+          - PolicyName: counter-policy
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - s3:GetObject
+                    - s3:PutObject
+                    - s3:PutObjectAcl
+                  Resource:
+                    - !Sub
+                      - "arn:aws:s3:::${SourceBucket}/*"
+                      - { SourceBucket: !Ref FileBucket }
+                    - !Sub
+                      - "arn:aws:s3:::${DestBucket}/*"
+                      - { DestBucket: !Ref FileCountBucket }
+                - Effect: Allow
+                  Action:
+                    - logs:CreateLogGroup
+                    - logs:CreateLogStream
+                    - logs:PutLogEvents
+                  Resource:
+                    Fn::Sub:
+                      - arn:aws:logs:${Region}:${AccountId}:log-group:/aws/lambda/*:*:*
+                      - {
+                          Region: !Ref AWS::Region,
+                          AccountId: !Ref AWS::AccountId,
+                        }
+    GetWordCountRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+              Action: sts:AssumeRole
+        Policies:
+          - PolicyName: get-word-count-policy
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - s3:GetObject
+                  Resource: !Sub
+                    - "arn:aws:s3:::${BucketName}/*"
+                    - { BucketName: !Ref FileCountBucket }
+                - Effect: Allow
+                  Action:
+                    - logs:CreateLogGroup
+                    - logs:CreateLogStream
+                    - logs:PutLogEvents
+                  Resource:
+                    Fn::Sub:
+                      - arn:aws:logs:${Region}:${AccountId}:log-group:/aws/lambda/*:*:*
+                      - {
+                          Region: !Ref AWS::Region,
+                          AccountId: !Ref AWS::AccountId,
+                        }
