@@ -1,6 +1,9 @@
 # fileUploader
 This code setup allows you to upload a text file, and get word the count.
 
+# Functional Diagram
+![alt text](https://github.com/mohammedmarjan/fileUploader/blob/dev/FunctionalDiagram.jpg?raw=true)
+
 ## Setup
 
 ```bash
