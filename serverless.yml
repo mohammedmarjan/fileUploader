@@ -3,7 +3,7 @@ service: ateamFileUploader
 provider:
   name: aws
   runtime: nodejs14.x
-  stage: prod
+  stage: dev
   memorySize: 512
   timeout: 10
   apiGateway:
