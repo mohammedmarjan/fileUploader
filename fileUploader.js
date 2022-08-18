@@ -14,10 +14,12 @@ module.exports.uploadFile = async (event) => {
         body: JSON.stringify({ message: "Only .txt files are allowed" }),
       };
     }
+    let baseName=path.basename(filename, '.txt');
+    
     await s3
       .putObject({
         Bucket: BUCKET,
-        Key: filename,
+        Key: `${baseName}/${baseName}_Original.txt`,
         Body: data,
       })
       .promise();
