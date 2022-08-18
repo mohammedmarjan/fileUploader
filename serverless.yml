@@ -3,7 +3,7 @@ service: ateamFileUploader
 provider:
   name: aws
   runtime: nodejs14.x
-  stage: prod
+  stage: ${opt:stage,'dev'}
   memorySize: 512
   timeout: 10
   apiGateway:
@@ -20,16 +20,18 @@ functions:
           cors: true
     role: UploadRole
     environment:
-      BUCKET: filebucket${opt:stage, 'dev'}
+      BUCKET: filebucket${sls:stage}
   wordCounter:
     handler: wordCounter.count
+    reservedConcurrency: 2
     events:
       - s3:
-          bucket: filebucket${opt:stage, 'dev'}
+          bucket: filebucket${sls:stage}
+          event: s3:ObjectCreated:*
+          rules:
+            - suffix: _Original.txt
           existing: true
     role: CounterRole
-    environment:
-      OUTPUT_BUCKET: filecountbucket${opt:stage, 'dev'}
   getWordCount:
     handler: getCount.getWordCount
     events:
@@ -39,21 +41,18 @@ functions:
           cors: true
     role: GetWordCountRole
     environment:
-      INPUT_BUCKET: filecountbucket${opt:stage, 'dev'}
+      BUCKET: filebucket${sls:stage}
 
 resources:
   Resources:
     FileBucket:
       Type: AWS::S3::Bucket
       Properties:
-        BucketName: filebucket${opt:stage, 'dev'}
-    FileCountBucket:
-      Type: AWS::S3::Bucket
-      Properties:
-        BucketName: filecountbucket${opt:stage, 'dev'}
+        BucketName: filebucket${sls:stage}
     UploadRole:
       Type: AWS::IAM::Role
       Properties:
+        RoleName: UploadRole
         AssumeRolePolicyDocument:
           Version: "2012-10-17"
           Statement:
@@ -89,6 +88,7 @@ resources:
     CounterRole:
       Type: AWS::IAM::Role
       Properties:
+        RoleName: CounterRole
         AssumeRolePolicyDocument:
           Version: "2012-10-17"
           Statement:
@@ -109,11 +109,8 @@ resources:
                     - s3:PutObjectAcl
                   Resource:
                     - !Sub
-                      - "arn:aws:s3:::${SourceBucket}/*"
-                      - { SourceBucket: !Ref FileBucket }
-                    - !Sub
-                      - "arn:aws:s3:::${DestBucket}/*"
-                      - { DestBucket: !Ref FileCountBucket }
+                      - "arn:aws:s3:::${BucketName}/*"
+                      - { BucketName: !Ref FileBucket }
                 - Effect: Allow
                   Action:
                     - logs:CreateLogGroup
@@ -129,6 +126,7 @@ resources:
     GetWordCountRole:
       Type: AWS::IAM::Role
       Properties:
+        RoleName: GetWordCountRole
         AssumeRolePolicyDocument:
           Version: "2012-10-17"
           Statement:
@@ -147,7 +145,7 @@ resources:
                     - s3:GetObject
                   Resource: !Sub
                     - "arn:aws:s3:::${BucketName}/*"
-                    - { BucketName: !Ref FileCountBucket }
+                    - { BucketName: !Ref FileBucket }
                 - Effect: Allow
                   Action:
                     - logs:CreateLogGroup
