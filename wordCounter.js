@@ -1,6 +1,6 @@
 const aws = require("aws-sdk");
+const path = require("path");
 const s3 = new aws.S3();
-const outputBucket = process.env.OUTPUT_BUCKET;
 
 module.exports.count = (event, context) => {
   if (event.Records === null) {
@@ -26,7 +26,8 @@ function processRecord(record) {
   return new Promise((resolve, reject) => {
     // The source bucket and source key are part of the event data
     var srcBucket = record.s3.bucket.name;
-    var srcKey = decodeURIComponent(record.s3.object.key.replace(/\+/g, " "));
+    // var srcKey = decodeURIComponent(record.s3.object.key.replace(/\+/g, " "));
+    var srcKey = record.s3.object.key;
 
     try {
       s3.getObject(
@@ -40,9 +41,9 @@ function processRecord(record) {
           }
           countWords(data)
             .then((wordCount) => {
-              return uploadResult(wordCount, outputBucket, srcKey);
+              return uploadResult(wordCount, srcBucket, srcKey);
             })
-            .then((data) => resolve())
+            .then((data) => resolve(data))
             .catch((err) => reject(err));
         }
       );
@@ -54,26 +55,33 @@ function processRecord(record) {
 
 function countWords(data) {
   return new Promise((resolve, reject) => {
-    let dataString = data.Body.toString();
-    let wordCount = dataString.split(" ").length;
-    resolve(wordCount);
+    try {
+      let dataString = data.Body.toString();
+      let wordCount = dataString.split(" ").length;
+      resolve(wordCount);
+    } catch (err) {
+      reject(err);
+    }
   });
 }
 
-function uploadResult(wordCount, destBucket, srcKey) {
+function uploadResult(wordCount, destBucket, destKey) {
   return new Promise((resolve, reject) => {
-    srcKey = "count_" + srcKey;
+    let dirName = path.dirname(destKey);
+    let baseName = path.basename(destKey, "_Original.txt");
+    destKey = `${dirName}/${baseName}_Count.txt`;
+
     s3.putObject(
       {
         Bucket: destBucket,
-        Key: srcKey,
+        Key: destKey,
         Body: wordCount.toString(),
       },
       (err, data) => {
         if (err) {
           reject(err);
         }
-        resolve();
+        resolve(data);
       }
     );
   });
