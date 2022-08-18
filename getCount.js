@@ -1,7 +1,6 @@
 const aws = require("aws-sdk");
 const s3 = new aws.S3();
-
-const inputBucket = process.env.INPUT_BUCKET;
+const BUCKET = process.env.BUCKET;
 
 module.exports.getWordCount = async (event, context) => {
   try {
@@ -9,8 +8,8 @@ module.exports.getWordCount = async (event, context) => {
 
     let data = await s3
       .getObject({
-        Bucket: inputBucket,
-        Key: "count_" + fileName + ".txt",
+        Bucket: BUCKET,
+        Key: `${fileName}/${fileName}_Count.txt`,
       })
       .promise();
 
