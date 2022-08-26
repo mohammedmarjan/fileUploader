@@ -1,4 +1,4 @@
-# fileUploader
+# File Uploader
 This code setup allows you to upload a text file, and get the word count.
 
 ## Functional Diagram
