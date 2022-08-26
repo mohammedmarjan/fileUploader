@@ -22,7 +22,7 @@ serverless deploy
 
 You can upload file with the following commands:
 
-### List all Categories
+### Upload a File
 
 ```bash
 [POST] https://XXXXXXX.execute-api.us-east-1.amazonaws.com/<stage>/file/upload
